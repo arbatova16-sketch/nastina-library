@@ -19,6 +19,19 @@
   --grn:#4eba7f;--grn2:#0f2a1e;--blu:#7eaee0;--blu2:#0f1f33;
   --amb:#f0b952;--amb2:#2a1f07;--pnk:#e07eb0;--pnk2:#2a0f20;--red:#e87060;
 }}
+/* forced theme overrides */
+[data-theme="light"]{
+  --bg:#faf9f7;--surf:#fff;--surf2:#f4f2ef;--brd:#e4e1da;--brd2:#ccc;
+  --txt:#1a1a18;--mute:#7a7870;
+  --grn:#2d6a4f;--grn2:#e8f5ed;--blu:#1a5276;--blu2:#e8f0fb;
+  --amb:#7d4e0a;--amb2:#fef3e0;--pnk:#7d2158;--pnk2:#fceaf4;--red:#c0392b;--star:#e6a817;
+}
+[data-theme="dark"]{
+  --bg:#1a1917;--surf:#242320;--surf2:#2e2c29;--brd:#3a3835;--brd2:#555;
+  --txt:#f0ede8;--mute:#9b9890;
+  --grn:#4eba7f;--grn2:#0f2a1e;--blu:#7eaee0;--blu2:#0f1f33;
+  --amb:#f0b952;--amb2:#2a1f07;--pnk:#e07eb0;--pnk2:#2a0f20;--red:#e87060;--star:#e6a817;
+}
 body{background:var(--bg);color:var(--txt);font-family:'Georgia',serif;min-height:100vh;padding-bottom:3rem}
 .wrap{max-width:1040px;margin:0 auto;padding:0 1.25rem}
 /* ── header ── */
@@ -95,6 +108,9 @@ header{background:var(--surf);border-bottom:1px solid var(--brd);padding:1rem 0;
 .cdel{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.4);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:none;align-items:center;justify-content:center}
 .bc:hover .cdel{display:flex}
 .cdel:hover{background:var(--red)}
+.phys-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:2px 7px;border-radius:20px;background:#e8f0fb;color:#1a5276;border:1px solid #b8d0f0;font-weight:600;white-space:nowrap}
+.phys-banner{position:absolute;top:0;left:0;right:0;background:linear-gradient(135deg,#1a5276,#2c5282);color:#fff;font-size:9px;font-weight:700;text-align:center;padding:3px 0;letter-spacing:.5px;opacity:0;transition:opacity .15s}
+.bc:hover .phys-banner{opacity:1}
 .cedit{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:20px;padding:3px 9px;font-size:11px;cursor:pointer;opacity:0;transition:opacity .15s;font-family:inherit;white-space:nowrap}
 .bc:hover .cedit{opacity:1}
 .empty{text-align:center;padding:3rem 1rem;color:var(--mute);font-style:italic}
@@ -179,6 +195,24 @@ textarea{height:60px;resize:vertical}
 /* ── sync tip ── */
 .synctip{font-size:12px;color:var(--mute);font-style:italic;line-height:1.5;background:var(--surf2);border-radius:var(--r);padding:12px 14px;border:1px solid var(--brd);margin-bottom:1rem}
 .synctip strong{color:var(--txt);font-style:normal}
+/* ── theme panel ── */
+.th-section{margin-bottom:1.25rem}
+.th-label{font-size:12px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem}
+.th-sublabel{font-size:12px;color:var(--mute);font-style:italic}
+.th-row{display:flex;gap:8px;flex-wrap:wrap}
+.th-mode-btn,.th-size-btn{flex:1;padding:8px 10px;border:1px solid var(--brd2);border-radius:var(--r);background:none;color:var(--mute);cursor:pointer;font-family:inherit;font-size:13px;transition:all .15s;white-space:nowrap}
+.th-mode-btn.on,.th-size-btn.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.th-mode-btn:hover:not(.on),.th-size-btn:hover:not(.on){background:var(--surf2)}
+.th-colors{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.5rem}
+.th-swatch{width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0}
+.th-swatch.on{border-color:var(--txt);transform:scale(1.15)}
+.th-swatch:hover:not(.on){transform:scale(1.1)}
+.th-custom-row{display:flex;align-items:center;gap:10px;margin-top:.4rem}
+.th-custom-row input[type=color]{width:36px;height:32px;border:1px solid var(--brd2);border-radius:var(--r);padding:2px;cursor:pointer;background:var(--surf2)}
+.th-fonts{display:flex;flex-direction:column;gap:6px}
+.th-font-btn{padding:9px 14px;border:1px solid var(--brd2);border-radius:var(--r);background:none;color:var(--txt);cursor:pointer;text-align:left;transition:all .15s;font-size:15px}
+.th-font-btn.on{border-color:var(--acc);background:var(--acc2)}
+.th-font-btn:hover:not(.on){background:var(--surf2)}
 @media(max-width:640px){
   .stats{grid-template-columns:repeat(3,1fr)}
   .fr,.fr3{grid-template-columns:1fr}
@@ -194,6 +228,7 @@ textarea{height:60px;resize:vertical}
       <div class="hdr-btns">
         <span class="cov-status" id="covSt"></span>
         <span id="ghSyncSt" style="font-size:12px;font-style:italic;color:var(--mute)"></span>
+        <button class="btn btn-sec" onclick="openTH()" title="Оформление">🎨</button>
         <button class="btn btn-sec" id="ghSettingsBtn" onclick="openGH()" title="Настройки синхронизации с GitHub">☁️ GitHub</button>
         <button class="btn btn-sec" onclick="loadAllCovers()">🖼 Обложки</button>
         <button class="btn btn-sec" onclick="exportCovers()" title="Сохранить обложки в файл">💾 Сохранить обложки</button>
@@ -270,6 +305,7 @@ textarea{height:60px;resize:vertical}
     <button class="tab" onclick="sw('want',this)">Хочу прочитать</button>
     <button class="tab" onclick="sw('wish',this)">Куплю позже</button>
     <button class="tab" onclick="sw('charts',this)">Статистика</button>
+    <button class="tab" onclick="sw('phys',this)">📖 Бумажная библиотека</button>
   </div>
 
   <div id="s-all">
@@ -308,6 +344,73 @@ textarea{height:60px;resize:vertical}
   <div id="s-want" style="display:none"><div class="grid" id="g-want"></div></div>
   <div id="s-wish" style="display:none"><div class="grid" id="g-wish"></div></div>
   <div id="s-charts" style="display:none"></div>
+  <div id="s-phys" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+      <div>
+        <p style="font-size:13px;color:var(--mute);font-style:italic" id="phys-count"></p>
+      </div>
+      <button class="btn btn-pri" onclick="openAddPhys()">+ Добавить бумажную книгу</button>
+    </div>
+    <div class="grid" id="g-phys"></div>
+  </div>
+</div>
+
+<!-- THEME PANEL -->
+<div class="ov" id="thov" onclick="if(event.target===this)closeTH()">
+  <div class="modal" style="max-width:500px">
+    <div class="mh"><div class="mtit">🎨 Оформление</div><button class="mclose" onclick="closeTH()">✕</button></div>
+
+    <div class="th-section">
+      <div class="th-label">Тема</div>
+      <div class="th-row">
+        <button class="th-mode-btn" id="th-light" onclick="setMode('light')">☀️ Светлая</button>
+        <button class="th-mode-btn" id="th-dark" onclick="setMode('dark')">🌙 Тёмная</button>
+        <button class="th-mode-btn" id="th-auto" onclick="setMode('auto')">⚙️ Авто</button>
+      </div>
+    </div>
+
+    <div class="th-section">
+      <div class="th-label">Цвет акцента</div>
+      <div class="th-colors" id="th-accents"></div>
+    </div>
+
+    <div class="th-section">
+      <div class="th-label">Фон страницы</div>
+      <div class="th-colors" id="th-bgs"></div>
+      <div class="th-custom-row">
+        <label class="th-sublabel">Свой цвет:</label>
+        <input type="color" id="th-bg-custom" onchange="setCustomBg(this.value)">
+      </div>
+    </div>
+
+    <div class="th-section">
+      <div class="th-label">Цвет карточек</div>
+      <div class="th-colors" id="th-surfs"></div>
+      <div class="th-custom-row">
+        <label class="th-sublabel">Свой цвет:</label>
+        <input type="color" id="th-surf-custom" onchange="setCustomSurf(this.value)">
+      </div>
+    </div>
+
+    <div class="th-section">
+      <div class="th-label">Шрифт</div>
+      <div class="th-fonts" id="th-fonts"></div>
+    </div>
+
+    <div class="th-section">
+      <div class="th-label">Размер карточек</div>
+      <div class="th-row">
+        <button class="th-size-btn" id="th-sm" onclick="setCardSize('sm')">Маленькие</button>
+        <button class="th-size-btn" id="th-md" onclick="setCardSize('md')">Средние</button>
+        <button class="th-size-btn" id="th-lg" onclick="setCardSize('lg')">Крупные</button>
+      </div>
+    </div>
+
+    <div class="fa" style="margin-top:1.25rem">
+      <button class="btn btn-sec" onclick="resetTheme()">Сбросить</button>
+      <button class="btn btn-pri" onclick="closeTH()">Готово</button>
+    </div>
+  </div>
 </div>
 
 <!-- VIEW/EDIT MODAL -->
@@ -466,6 +569,8 @@ async function ghPull(){
     try{localStorage.setItem('lib_v6',JSON.stringify(books));}catch(e){}
     const covData=JSON.stringify(coverCache);
     ['lib_covers','lib_covers_backup'].forEach(k=>{try{localStorage.setItem(k,covData);}catch(e){}});
+    initPhysLib();
+    render();buildGenreChips();
     ghStatus('☁️ Синхронизировано',true);
     return true;
   }catch(e){
@@ -483,10 +588,12 @@ function load(){
   const covKeys=['lib_covers','lib_covers_v2','lib_covers_backup'];
   for(const ck of covKeys){try{const r=localStorage.getItem(ck);if(r){Object.assign(coverCache,JSON.parse(r));}}catch(e){}}
   if(Object.keys(coverCache).length>0){try{localStorage.setItem('lib_covers_backup',JSON.stringify(coverCache));}catch(e){}}
+  thLoad();
+  initPhysLib();
   render(); buildGenreChips();
   // After local render, try to pull from GitHub
   if(ghReady()){
-    ghPull().then(ok=>{if(ok){render();buildGenreChips();}});
+    ghPull().then(ok=>{if(ok){initPhysLib();render();buildGenreChips();}});
   } else {
     ghStatus('☁️ GitHub не настроен');
   }
@@ -613,6 +720,7 @@ function saveBook(){
     }
   } else {
     const nb={id:Date.now(),title,author,genre:document.getElementById('f-genre').value.trim(),pubYear:document.getElementById('f-pubyear').value.trim(),status,rating:parseInt(document.getElementById('f-rating').value),dateStart:ds,dateEnd:isReading?'':de,pages,ePages,daysRead:days,pagesPerDay:ppd,readYear:ry,note:document.getElementById('f-note').value.trim(),cover:CV[Math.floor(Math.random()*CV.length)]};
+    if(window._addingPhys){nb.pInLib=true;window._addingPhys=false;}
     books.unshift(nb);
     if(cpSelectedUrl) coverCache[nb.id]=cpSelectedUrl;
   }
@@ -644,8 +752,10 @@ function card(b){
     +'<div class="bt">'+esc(b.title)+'</div>'
     +'<div class="ba">'+esc(b.author)+'</div>'
     +(b.genre?'<div class="bg2">'+esc(b.genre)+'</div>':'')
+    +(b.pInLib?'<div class="phys-banner">📖 ЕСТЬ В БИБЛИОТЕКЕ</div>':'')
     +'<div class="bm"><span class="badge '+SC[b.status]+'">'+SL[b.status]+'</span>'
-    +(b.pages?'<span class="pnum">'+b.pages+'с</span>':'')+stars(b.rating)+'</div>'
+    +(b.pages?'<span class="pnum">'+b.pages+'с</span>':'')
+    +stars(b.rating)+'</div>'
     +'</div>';
 }
 
@@ -681,6 +791,7 @@ function render(){
     document.getElementById('g-'+st).innerHTML=sl.length?sl.map(card).join(''):empty();
   });
   renderStats(); renderCharts();
+  if(document.getElementById('s-phys')&&document.getElementById('s-phys').style.display!=='none')renderPhys();
 }
 
 function renderStats(){
@@ -690,7 +801,7 @@ function renderStats(){
   const avg=rt.length?(rt.reduce((s,b)=>s+b.rating,0)/rt.length).toFixed(1):'—';
   const td=rd.reduce((s,b)=>s+(b.daysRead||0),0);
   document.getElementById('sg').innerHTML=
-    '<div class="sc"><div class="sl">Всего книг</div><div class="sv">'+books.length+'</div></div>'
+    '<div class="sc"><div class="sl">Всего прочитано книг</div><div class="sv">'+rd.length+'</div></div>'
     +'<div class="sc"><div class="sl">Прочитано</div><div class="sv">'+rd.length+'</div></div>'
     +'<div class="sc"><div class="sl">Страниц прочитано</div><div class="sv">'+tp.toLocaleString('ru')+'</div></div>'
     +'<div class="sc"><div class="sl">Дней с книгой</div><div class="sv">'+td+'</div></div>'
@@ -794,6 +905,7 @@ function openModal(id){
     +(b.genre?'<div class="mrow">Жанр: <span>'+esc(b.genre)+'</span></div>':'')
     +(b.pubYear?'<div class="mrow">Год публикации: <span>'+esc(b.pubYear)+'</span></div>':'')
     +'<div class="mrow">Статус: <span class="badge '+SC[b.status]+'">'+SL[b.status]+'</span></div>'
+    +'<div class="mrow">Есть в библиотеке: <span>'+(b.pInLib?'да':'нет')+'</span></div>'
     +(b.rating?'<div class="mrow">Оценка: '+stars(b.rating)+'</div>':'')
     +(b.dateStart?'<div class="mrow">Начала читать: <span>'+fmt(b.dateStart)+'</span></div>':'')
     +(b.dateEnd?'<div class="mrow">Закончила читать: <span>'+fmt(b.dateEnd)+'</span></div>':'')
@@ -808,6 +920,7 @@ function openModal(id){
     +'<div class="mact">'
     +'<button class="btn btn-red" onclick="delBook('+b.id+',event)">🗑 Удалить</button>'
     +'<button class="btn btn-sec" onclick="openCoverPicker('+b.id+',{stopPropagation:()=>{}})">🖼 Обложка</button>'
+    +'<button class="btn '+(b.pInLib?'btn-pri':'btn-sec')+'" onclick="togglePhys('+b.id+')">'+(b.pInLib?'📖 В библиотеке':'📖 Добавить в библиотеку')+'</button>'
     +'<button class="btn btn-pri" onclick="openEditForm('+b.id+')">✏️ Редактировать</button>'
     +'</div>';
   document.getElementById('bov').classList.add('open');
@@ -817,7 +930,8 @@ function closeModal(){document.getElementById('bov').classList.remove('open');}
 // ── TAB SWITCH ────────────────────────────────────────────────────────────────
 function sw(name,el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');
-  ['all','read','reading','want','wish','charts'].forEach(s=>document.getElementById('s-'+s).style.display=s===name?'block':'none');
+  ['all','read','reading','want','wish','charts','phys'].forEach(s=>document.getElementById('s-'+s).style.display=s===name?'block':'none');
+  if(name==='phys')renderPhys();
 }
 
 // ── COVER PICKER ──────────────────────────────────────────────────────────────
@@ -1023,8 +1137,317 @@ async function ghTestConnection(){
   }catch(e){st.textContent='✗ Нет соединения с GitHub';st.style.color='var(--red)';}
 }
 
+// ── PHYSICAL LIBRARY ─────────────────────────────────────────────────────────
+// Titles that have a physical copy (used to set pInLib flag on existing books)
+const PHYS_TITLES = new Set([
+  "никогде","будет кровь (сборник)","страна радости","игра джералда",
+  "тьма — и больше ничего (сборник)","зелёная миля","лигейя (сборник)",
+  "первая любовь (сборник)","славянские мифы","сборник (николай носов)",
+  "мастер и маргарита","с того света","лавр",
+  "унесённые ветром. том 1","унесённые ветром. том 2",
+  "танатонавты","империя ангелов","десять негритят","гордость и предубеждение",
+  "мгла над инсмутом (сборник)","дневник бриджит джонс","рассказ служанки",
+  "451 градус по фаренгейту","человек, который смеётся","собачье сердце (сборник)",
+  "ночная фиалка (сборник)","четыре жизни хелен ламберт",
+  "мой театр. книга первая","мой театр. книга вторая","мемуары",
+  "почтальонша","обломов","белые ночи; бедные люди","coraline",
+  "мёртвые души","незнакомка из уайлдфелл-холла",
+  "harry potter and the philosopher's stone","harry potter and the chamber of secrets",
+  "harry potter and the prisoner of azkaban","harry potter and the goblet of fire",
+  "harry potter and the order of the phoenix","harry potter and the half-blood prince",
+  "harry potter and the deathly hallows","гарри поттер и проклятое дитя",
+  "игра престолов","битва королей","буря мечей",
+  "похороните меня за плинтусом","зелёный свет","грозовой перевал","метро 2033",
+  "война и мир","аня из зелёных мезонинов","подросток",
+  "преступление и наказание","рождественские повести","мы (сборник)",
+  "скорбь сатаны","анна каренина",
+  "прочь из замкнутого круга!","аэропорт","повелитель мух",
+  "1984","скотный двор","человек-невидимка","человек-невидимка; война миров (сборник)"
+]);
+
+// New physical books not in reading list (added as "want" + pInLib)
+const NEW_PHYS_BOOKS = [
+  {title:"Дюна",author:"Фрэнк Герберт",genre:"Фантастика",pubYear:"1965"},
+  {title:"Щелкунчик и Мышиный Король",author:"Э.Т.А. Гофман",genre:"Классика",pubYear:"1816"},
+  {title:"Скандинавские мифы",author:"Кэролин Ларрингтон",genre:"Нон-фикшн",pubYear:"2017"},
+  {title:"Кельтские мифы",author:"Миранда Олдхаус-Грин",genre:"Нон-фикшн",pubYear:"2018"},
+  {title:"Кэрри",author:"Стивен Кинг",genre:"Ужасы",pubYear:"1974"},
+  {title:"Человек-невидимка; Война миров (сборник)",author:"Герберт Уэллс",genre:"Научная фантастика",pubYear:"1898"},
+  {title:"Жареные зелёные помидоры в кафе «Полустанок»",author:"Фэнни Флэгг",genre:"Роман",pubYear:"1987"},
+  {title:"Слепота",author:"Жозе Сарамаго",genre:"Роман",pubYear:"1995"},
+  {title:"Гранатовый браслет",author:"Александр Куприн",genre:"Классика",pubYear:"1910"},
+  {title:"Всё о Муми-троллях",author:"Туве Янссон",genre:"Детская литература",pubYear:"1945"},
+  {title:"Маленький принц",author:"Антуан де Сент-Экзюпери",genre:"Классика",pubYear:"1943"},
+  {title:"Финансист",author:"Теодор Драйзер",genre:"Классика",pubYear:"1912"},
+  {title:"Мартин Иден",author:"Джек Лондон",genre:"Классика",pubYear:"1909"},
+  {title:"1984. Скотный двор",author:"Джордж Оруэлл",genre:"Антиутопия",pubYear:"1949"},
+  {title:"Собор Парижской Богоматери",author:"Виктор Гюго",genre:"Классика",pubYear:"1831"},
+  {title:"Женщина в библиотеке",author:"Сулари Джентилл",genre:"Детектив",pubYear:"2022"},
+  {title:"Ген Рафаила",author:"Катя Качур",genre:"Роман",pubYear:"2023"},
+  {title:"Жёлчный ангел",author:"Катя Качур",genre:"Роман",pubYear:"2023"},
+  {title:"Энтомология для слабонервных",author:"Катя Качур",genre:"Роман",pubYear:"2024"},
+  {title:"Сборник произведений в 4 томах",author:"Александр Беляев",genre:"Научная фантастика",pubYear:""}
+];
+
+// Inject pInLib flag into all books and add new phys books if needed
+function initPhysLib() {
+  // Mark existing books
+  books = books.map(b => ({
+    ...b,
+    pInLib: b.pInLib || PHYS_TITLES.has(b.title.toLowerCase())
+  }));
+  // Add new physical books if not already present
+  const existing = new Set(books.map(b => b.title.toLowerCase()));
+  let added = 0;
+  for (const nb of NEW_PHYS_BOOKS) {
+    if (!existing.has(nb.title.toLowerCase())) {
+      books.push({
+        id: 900000 + added,
+        title: nb.title, author: nb.author, genre: nb.genre, pubYear: nb.pubYear,
+        readYear: '', status: 'want', rating: 0,
+        dateStart: '', dateEnd: '', pages: null, ePages: null,
+        daysRead: null, pagesPerDay: null, note: '',
+        cover: '📚', pInLib: true,
+        added: Date.now() + added
+      });
+      added++;
+    }
+  }
+  // Always save — marks pInLib on books that came from GitHub without it
+  save();
+}
+
+// Physical book card (similar to regular card but with shelf styling)
+function physCard(b) {
+  const cov = coverCache[b.id];
+  const covHtml = cov ? '<img src="'+esc(cov)+'" alt="" onerror="this.style.display=\'none\'">' : '';
+  const readBadge = b.status === 'read'
+    ? '<span class="badge b-read" style="font-size:9px">✓ Читала</span>'
+    : '';
+  return '<div class="bc" onclick="openModal('+b.id+')">'
+    +'<button class="cdel" onclick="delBook('+b.id+',event)" title="Удалить">✕</button>'
+    +'<div class="bcov" style="'+(cov?'':'background:'+BG[b.status||'want'])+'">'
+    +covHtml+(cov?'':'<span>'+(b.cover||'📚')+'</span>')
+    +'</div>'
+    +'<button class="cedit" onclick="openCoverPicker('+b.id+',event)">✎ обложка</button>'
+    +'<div class="bt">'+esc(b.title)+'</div>'
+    +'<div class="ba">'+esc(b.author)+'</div>'
+    +(b.genre?'<div class="bg2">'+esc(b.genre)+'</div>':'')
+    +'<div class="bm">'+readBadge
+    +(b.rating?stars(b.rating):'')
+    +'</div>'
+    +'</div>';
+}
+
+function renderPhys() {
+  const physBooks = books.filter(b => b.pInLib);
+  const sortedPhys = [...physBooks].sort((a,b) => {
+    // read books first, then want/wish
+    if (a.status==='read' && b.status!=='read') return -1;
+    if (a.status!=='read' && b.status==='read') return 1;
+    return a.title.localeCompare(b.title, 'ru');
+  });
+  const readCount = physBooks.filter(b => b.status==='read').length;
+  const el = document.getElementById('phys-count');
+  if (el) el.textContent = 'Всего: '+physBooks.length+' книг · Прочитано: '+readCount+' · Непрочитанных: '+(physBooks.length-readCount);
+  const grid = document.getElementById('g-phys');
+  if (grid) grid.innerHTML = sortedPhys.length ? sortedPhys.map(physCard).join('') : empty();
+}
+
+function openAddPhys() {
+  openAddForm();
+  // Pre-check physical
+  setTimeout(() => {
+    document.getElementById('f-status').value = 'want';
+    onStatusChange();
+    // We'll set pInLib=true on save if opened from here
+    window._addingPhys = true;
+  }, 50);
+}
+
+// ── TOGGLE PHYSICAL FLAG ─────────────────────────────────────────────────────
+function togglePhys(id) {
+  const b = books.find(x => x.id === id);
+  if (!b) return;
+  b.pInLib = !b.pInLib;
+  save();
+  render();
+  // Re-open modal to reflect change
+  openModal(id);
+}
+
+// ── THEME ENGINE ─────────────────────────────────────────────────────────────
+const TH_ACCENTS = [
+  {v:'#2c5282',label:'Синий'},
+  {v:'#276749',label:'Зелёный'},
+  {v:'#9b2335',label:'Красный'},
+  {v:'#744210',label:'Янтарный'},
+  {v:'#553c9a',label:'Фиолетовый'},
+  {v:'#1a7a8a',label:'Бирюзовый'},
+  {v:'#b7410e',label:'Терракота'},
+  {v:'#4a4a4a',label:'Графит'},
+];
+const TH_BGS_LIGHT = [
+  {v:'#faf9f7',label:'Молочный'},
+  {v:'#f0f4f8',label:'Голубоватый'},
+  {v:'#f5f0eb',label:'Бежевый'},
+  {v:'#f0f5f0',label:'Мятный'},
+  {v:'#fdf5f7',label:'Розовый'},
+  {v:'#f8f5ff',label:'Лавандовый'},
+  {v:'#fffef0',label:'Кремовый'},
+  {v:'#f2f2f2',label:'Серый'},
+];
+const TH_SURFS_LIGHT = [
+  {v:'#ffffff',label:'Белый'},
+  {v:'#fdf8f2',label:'Кремовый'},
+  {v:'#f0f4ff',label:'Голубой'},
+  {v:'#f5fff5',label:'Мятный'},
+  {v:'#fff5f8',label:'Розовый'},
+  {v:'#f8f5ff',label:'Лавандовый'},
+  {v:'#fffff0',label:'Жёлтый'},
+  {v:'#f5f5f5',label:'Серый'},
+];
+const TH_FONTS = [
+  {v:"'Georgia', serif", label:'Georgia (с засечками)', sample:'Аа Книга'},
+  {v:"'Palatino Linotype', 'Book Antiqua', Palatino, serif", label:'Palatino (элегантный)', sample:'Аа Книга'},
+  {v:"-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", label:'Системный (без засечек)', sample:'Аа Книга'},
+  {v:"'Trebuchet MS', sans-serif", label:'Trebuchet (современный)', sample:'Аа Книга'},
+  {v:"'Courier New', Courier, monospace", label:'Courier (моноширинный)', sample:'Аа Книга'},
+];
+const TH_CARD_SIZES = {sm:'140px', md:'155px', lg:'180px'};
+
+let thCfg = {
+  mode: 'auto',
+  accent: '#2c5282',
+  bg: '',
+  surf: '',
+  font: "'Georgia', serif",
+  cardSize: 'md',
+};
+
+function thLoad() {
+  try {
+    const saved = localStorage.getItem('th_cfg');
+    if (saved) thCfg = {...thCfg, ...JSON.parse(saved)};
+  } catch(e) {}
+  applyTheme();
+}
+
+function thSave() {
+  try { localStorage.setItem('th_cfg', JSON.stringify(thCfg)); } catch(e) {}
+}
+
+function applyTheme() {
+  const root = document.documentElement;
+  const isDark = thCfg.mode === 'dark' ||
+    (thCfg.mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  // Mode
+  root.setAttribute('data-theme', isDark ? 'dark' : 'light');
+
+  // Accent
+  root.style.setProperty('--acc', thCfg.accent);
+  // Derive lighter accent bg
+  root.style.setProperty('--acc2', thCfg.accent + '22');
+
+  // Background
+  if (thCfg.bg) {
+    root.style.setProperty('--bg', thCfg.bg);
+    root.style.setProperty('--surf2', thCfg.bg);
+  } else {
+    root.style.removeProperty('--bg');
+    root.style.removeProperty('--surf2');
+  }
+
+  // Surface (cards)
+  if (thCfg.surf) {
+    root.style.setProperty('--surf', thCfg.surf);
+  } else {
+    root.style.removeProperty('--surf');
+  }
+
+  // Font
+  root.style.setProperty('--font', thCfg.font);
+  document.body.style.fontFamily = thCfg.font;
+
+  // Card size
+  const size = TH_CARD_SIZES[thCfg.cardSize] || '155px';
+  root.style.setProperty('--card-min', size);
+  document.querySelectorAll('.grid').forEach(g => {
+    g.style.gridTemplateColumns = 'repeat(auto-fill,minmax('+size+',1fr))';
+  });
+}
+
+function openTH() {
+  buildThemePanel();
+  document.getElementById('thov').classList.add('open');
+}
+function closeTH() {
+  document.getElementById('thov').classList.remove('open');
+}
+
+function buildThemePanel() {
+  // Mode buttons
+  ['light','dark','auto'].forEach(m => {
+    const btn = document.getElementById('th-'+m);
+    if (btn) btn.classList.toggle('on', thCfg.mode === m);
+  });
+
+  // Accents
+  const accEl = document.getElementById('th-accents');
+  if (accEl) accEl.innerHTML = TH_ACCENTS.map(a =>
+    '<div class="th-swatch'+(thCfg.accent===a.v?' on':'')+'" style="background:'+a.v+'" title="'+a.label+'" onclick="setAccent(\''+a.v+'\')"></div>'
+  ).join('');
+
+  // Backgrounds
+  const bgEl = document.getElementById('th-bgs');
+  const noneSwBg = '<div class="th-swatch'+(thCfg.bg===''?' on':'')+'" style="background:linear-gradient(135deg,#eee 50%,#fff 50%);border:1px solid #ccc" title="По умолчанию" onclick="setBg(\'\')"></div>';
+  if (bgEl) bgEl.innerHTML = noneSwBg + TH_BGS_LIGHT.map(b =>
+    '<div class="th-swatch'+(thCfg.bg===b.v?' on':'')+'" style="background:'+b.v+'" title="'+b.label+'" onclick="setBg(\''+b.v+'\')"></div>'
+  ).join('');
+  const bgCustom = document.getElementById('th-bg-custom');
+  if (bgCustom && thCfg.bg) bgCustom.value = thCfg.bg;
+
+  // Surfaces
+  const sfEl = document.getElementById('th-surfs');
+  const noneSwSf = '<div class="th-swatch'+(thCfg.surf===''?' on':'')+'" style="background:linear-gradient(135deg,#eee 50%,#fff 50%);border:1px solid #ccc" title="По умолчанию" onclick="setSurf(\'\')"></div>';
+  if (sfEl) sfEl.innerHTML = noneSwSf + TH_SURFS_LIGHT.map(s =>
+    '<div class="th-swatch'+(thCfg.surf===s.v?' on':'')+'" style="background:'+s.v+';border:1px solid #ddd" title="'+s.label+'" onclick="setSurf(\''+s.v+'\')"></div>'
+  ).join('');
+  const sfCustom = document.getElementById('th-surf-custom');
+  if (sfCustom && thCfg.surf) sfCustom.value = thCfg.surf;
+
+  // Fonts
+  const ftEl = document.getElementById('th-fonts');
+  if (ftEl) ftEl.innerHTML = TH_FONTS.map(f =>
+    '<button class="th-font-btn'+(thCfg.font===f.v?' on':'')+'" style="font-family:'+f.v+'" onclick="setFont(\''+f.v.replace(/'/g,"\\'")+'\')">'
+    +'<span style="font-size:18px;margin-right:10px">'+f.sample+'</span>'
+    +'<span style="font-size:12px;color:var(--mute);font-family:inherit">'+f.label+'</span>'
+    +'</button>'
+  ).join('');
+
+  // Card size
+  ['sm','md','lg'].forEach(s => {
+    const btn = document.getElementById('th-'+s);
+    if (btn) btn.classList.toggle('on', thCfg.cardSize === s);
+  });
+}
+
+function setMode(m) { thCfg.mode=m; thSave(); applyTheme(); buildThemePanel(); }
+function setAccent(v) { thCfg.accent=v; thSave(); applyTheme(); buildThemePanel(); }
+function setBg(v) { thCfg.bg=v; thSave(); applyTheme(); buildThemePanel(); }
+function setSurf(v) { thCfg.surf=v; thSave(); applyTheme(); buildThemePanel(); }
+function setCustomBg(v) { thCfg.bg=v; thSave(); applyTheme(); buildThemePanel(); }
+function setCustomSurf(v) { thCfg.surf=v; thSave(); applyTheme(); buildThemePanel(); }
+function setFont(v) { thCfg.font=v; thSave(); applyTheme(); buildThemePanel(); }
+function setCardSize(s) { thCfg.cardSize=s; thSave(); applyTheme(); buildThemePanel(); }
+function resetTheme() {
+  thCfg = {mode:'auto',accent:'#2c5282',bg:'',surf:'',font:"'Georgia', serif",cardSize:'md'};
+  thSave(); applyTheme(); buildThemePanel();
+}
+
 // ── KEYBOARD ──────────────────────────────────────────────────────────────────
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCP();closeGH();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCP();closeGH();closeTH();}});
 
 load();
 
