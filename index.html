@@ -415,13 +415,13 @@ async function ghGet(path){
   if(r.status===404)return null;
   if(!r.ok)throw new Error('GitHub GET failed: '+r.status);
   const data=await r.json();
-  return{content:JSON.parse(atob(data.content.split('\n').join(''))),sha:data.sha};
+  return{content:JSON.parse(decodeURIComponent(atob(data.content.split('\n').join('')).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''))),sha:data.sha};
 }
 
 async function ghPut(path,content,sha){
   const g=ghCfg();
   const url='https://api.github.com/repos/'+g.user+'/'+g.repo+'/contents/'+path;
-  const body={message:'update '+path,content:btoa(unescape(encodeURIComponent(JSON.stringify(content))))};
+  const body={message:'update '+path,content:btoa(encodeURIComponent(JSON.stringify(content)).replace(/%([0-9A-F]{2})/g,(m,p)=>String.fromCharCode('0x'+p)))};
   if(sha)body.sha=sha;
   const r=await fetch(url,{method:'PUT',headers:{'Authorization':'token '+g.token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify(body)});
   if(!r.ok){const e=await r.json();throw new Error(e.message||'GitHub PUT failed');}
