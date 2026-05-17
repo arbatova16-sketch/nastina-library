@@ -213,6 +213,13 @@ textarea{height:60px;resize:vertical}
 .th-font-btn{padding:9px 14px;border:1px solid var(--brd2);border-radius:var(--r);background:none;color:var(--txt);cursor:pointer;text-align:left;transition:all .15s;font-size:15px}
 .th-font-btn.on{border-color:var(--acc);background:var(--acc2)}
 .th-font-btn:hover:not(.on){background:var(--surf2)}
+.svc-panel{display:none;background:var(--surf);border-bottom:1px solid var(--brd);padding:.75rem 0}
+.svc-panel.open{display:block}
+.svc-inner{max-width:1040px;margin:0 auto;padding:0 1.25rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center}
+.svc-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.svc-label{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.svc-group+.svc-group{padding-left:1rem;border-left:1px solid var(--brd)}
+.btn-sm{padding:5px 10px !important;font-size:12px !important}
 @media(max-width:640px){
   .stats{grid-template-columns:repeat(3,1fr)}
   .fr,.fr3{grid-template-columns:1fr}
@@ -226,21 +233,36 @@ textarea{height:60px;resize:vertical}
     <div class="hdr">
       <div class="brand">📚 Настина <span>клёвая библиотека</span></div>
       <div class="hdr-btns">
-        <span class="cov-status" id="covSt"></span>
         <span id="ghSyncSt" style="font-size:12px;font-style:italic;color:var(--mute)"></span>
-        <button class="btn btn-sec" onclick="openTH()" title="Оформление">🎨</button>
-        <button class="btn btn-sec" id="ghSettingsBtn" onclick="openGH()" title="Настройки синхронизации с GitHub">☁️ GitHub</button>
-        <button class="btn btn-sec" onclick="loadAllCovers()">🖼 Обложки</button>
-        <button class="btn btn-sec" onclick="exportCovers()" title="Сохранить обложки в файл">💾 Сохранить обложки</button>
-        <input type="file" id="imp-file" accept=".json" style="display:none" onchange="importCovers(this)">
-        <button class="btn btn-sec" onclick="document.getElementById('imp-file').click()" title="Загрузить ранее сохранённые обложки">📂 Загрузить обложки</button>
-        <button class="btn btn-sec" onclick="exportXlsx()">📥 Excel</button>
+        <button class="ficon" onclick="toggleServicePanel()" id="svc-btn" title="Инструменты">⚙️</button>
         <button class="btn btn-pri" onclick="openAddForm()">+ Добавить</button>
       </div>
     </div>
   </div>
 </header>
 
+<!-- SERVICE PANEL -->
+<div class="svc-panel" id="svcPanel">
+  <div class="svc-inner">
+    <div class="svc-group">
+      <span class="svc-label">Синхронизация</span>
+      <span class="cov-status" id="covSt" style="font-size:12px;color:var(--mute);font-style:italic"></span>
+      <button class="btn btn-sec btn-sm" id="ghSettingsBtn" onclick="openGH()">☁️ GitHub</button>
+    </div>
+    <div class="svc-group">
+      <span class="svc-label">Обложки</span>
+      <button class="btn btn-sec btn-sm" onclick="loadAllCovers()">🖼 Загрузить все</button>
+      <button class="btn btn-sec btn-sm" onclick="exportCovers()">💾 Сохранить</button>
+      <input type="file" id="imp-file" accept=".json" style="display:none" onchange="importCovers(this)">
+      <button class="btn btn-sec btn-sm" onclick="document.getElementById('imp-file').click()">📂 Импорт</button>
+    </div>
+    <div class="svc-group">
+      <span class="svc-label">Данные</span>
+      <button class="btn btn-sec btn-sm" onclick="exportXlsx()">📥 Excel</button>
+      <button class="btn btn-sec btn-sm" onclick="openTH()">🎨 Оформление</button>
+    </div>
+  </div>
+</div>
 <div class="wrap">
   <div class="stats" id="sg"></div>
 
@@ -513,6 +535,26 @@ const GH_FILES={books:'data/books.json',covers:'data/covers.json'};
 
 async function ghGet(path){
   const g=ghCfg();
+  // Try public raw URL first (no token needed for public repos)
+  if(g.user&&g.repo){
+    try{
+      const rawUrl='https://raw.githubusercontent.com/'+g.user+'/'+g.repo+'/main/'+path;
+      const rRaw=await fetch(rawUrl);
+      if(rRaw.ok){
+        const data=await rRaw.json();
+        // For public read we don't get sha — fetch it separately if we have token
+        let sha=null;
+        if(g.token){
+          const apiUrl='https://api.github.com/repos/'+g.user+'/'+g.repo+'/contents/'+path;
+          const rApi=await fetch(apiUrl,{headers:{'Authorization':'token '+g.token,'Accept':'application/vnd.github.v3+json'}});
+          if(rApi.ok){const d=await rApi.json();sha=d.sha;}
+        }
+        return{content:data,sha};
+      }
+    }catch(e){}
+  }
+  // Fallback: API with token
+  if(!g.token)return null;
   const url='https://api.github.com/repos/'+g.user+'/'+g.repo+'/contents/'+path;
   const r=await fetch(url,{headers:{'Authorization':'token '+g.token,'Accept':'application/vnd.github.v3+json'}});
   if(r.status===404)return null;
@@ -580,6 +622,8 @@ async function ghPull(){
 }
 
 // ── LOCAL STORAGE LOAD/SAVE ───────────────────────────────────────────────────
+const BUILTIN_COVERS = {"1": "https://cdn.eksmo.ru/v2/ITD000000001118301/COVER/cover1__w820.jpg", "2": "https://imo10.labirint.ru/books/589214/cover.jpg/242-0", "3": "https://bukinistka.store/environment/cache/images/productGfx_11672_750_750/7606315122.webp", "4": "https://imo10.labirint.ru/books/734805/cover.jpg/484-0", "5": "https://imo10.labirint.ru/books/733346/cover.jpg/242-0", "6": "https://media.elefant.ro/mnresize/1000/-/is/product-images/carte-straina/eksmo/8d9ffbd2/51d9/42e9/bc9c/36678c603cc8/8d9ffbd2-51d9-42e9-bc9c-36678c603cc8_1.jpg", "7": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSClaaMY4Qc5UWPdSdhHUVWXfk71faxlvQlBw&s", "8": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBI1mJyXBgwRLwXFU5gfGs1s3TlZUDtwy5zQ&s", "9": "https://imo10.labirint.ru/books/712910/cover.jpg/242-0", "10": "https://covers.openlibrary.org/b/id/981738-M.jpg", "11": "https://d1v124mdoasvln.cloudfront.net/pictures/books_photos/86/869361/o.jpg", "12": "https://cdn.azbooka.ru/cv/w1100/webp/3d995562-3b31-4520-830a-30567a28482a.webp", "13": "https://carturesti.md/img-prod/163174999-0.jpeg", "14": "https://res.cloudinary.com/bloomsbury-atlas/image/upload/w_360,c_scale,dpr_1.5/jackets/9781408855652.jpg", "15": "https://covers.openlibrary.org/b/id/14341919-M.jpg", "16": "https://imo10.labirint.ru/books/865612/cover.jpg/242-0", "17": "https://imo10.labirint.ru/books/774947/cover.jpg/242-0", "18": "https://cdn.eksmo.ru/v2/ITD000000000934349/COVER/cover1__w820.jpg", "19": "https://imo10.labirint.ru/books/842689/cover.jpg/484-0", "20": "https://imo10.labirint.ru/books/785083/cover.jpg/484-0", "21": "https://biblion.md/wp-content/uploads/2020/12/игра-престолов.webp", "22": "https://www.moscowbooks.ru/image/book/800/orig/i800091.jpg?cu=20231218175522", "23": "https://biblion.md/wp-content/uploads/2024/03/мой-театр-цискаридзе-книга-1-АСТ.png", "24": "https://res.cloudinary.com/bloomsbury-atlas/image/upload/w_568,c_scale,dpr_1.5/jackets/9781408855669.jpg", "25": "https://imo10.labirint.ru/books/420218/cover.jpg/242-0", "26": "https://res.cloudinary.com/bloomsbury-atlas/image/upload/w_360,c_scale,dpr_1.5/jackets/9781408855676.jpg", "27": "https://imo10.labirint.ru/books/651861/cover.jpg/242-0", "28": "https://res.cloudinary.com/bloomsbury-atlas/image/upload/w_360,c_scale,dpr_1.5/jackets/9781408855683.jpg", "29": "https://imo10.labirint.ru/books/417700/cover.jpg/242-0", "30": "https://imo10.labirint.ru/books/518825/cover.jpg/242-0", "31": "https://res.cloudinary.com/bloomsbury-atlas/image/upload/w_568,c_scale,dpr_1.5/jackets/9781408855690.jpg", "32": "https://covers.openlibrary.org/b/id/115122-M.jpg", "33": "https://www.mann-ivanov-ferber.ru/assets/images/covers/78/33778/1.50x-thumb.png", "34": "https://s1.livelib.ru/boocover/1000728161/200x305/5eb4/boocover.jpg", "35": "https://imo10.labirint.ru/books/774725/cover.jpg/242-0", "36": "https://res.cloudinary.com/bloomsbury-atlas/image/upload/w_360,c_scale,dpr_1.5/jackets/9781408855706.jpg", "37": "https://media.elefant.ro/mnresize/1000/-/is/product-images/carte-straina/eksmo/20220623/b7b8720e/f449/5655/a7d0/f828c0150276/b7b8720e-f449-5655-a7d0-f828c0150276_1.jpg", "38": "https://imo10.labirint.ru/books/626049/cover.jpg/242-0", "39": "https://s1.livelib.ru/boocover/1008294913/200x305/ec64/boocover.jpg", "40": "https://res.cloudinary.com/bloomsbury-atlas/image/upload/w_360,c_scale,dpr_1.5/jackets/9781408855713.jpg", "41": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcReLqtYHH2Y_HrJirG7SZsb6IvFvpQs5tg7pA&s", "42": "https://imo10.labirint.ru/books/955673/cover.jpg/242-0", "43": "https://imo10.labirint.ru/books/443725/cover.jpg/242-0", "44": "https://content.img-gorod.ru/pim/products/images/0d/31/018f5fb4-42b5-7ea5-a474-7a89e99c0d31.jpg", "45": "https://upload.wikimedia.org/wikipedia/ru/c/c3/Похороните_меня_за_плинтусом_(обложка_книги).jpg", "46": "https://imo10.labirint.ru/books/825915/cover.jpg/242-0", "47": "https://covers.openlibrary.org/b/id/8763851-M.jpg", "48": "https://imo10.labirint.ru/books/901229/cover.jpg/484-0", "49": "https://imo10.labirint.ru/books/672091/cover.jpg/242-0", "50": "https://imo10.labirint.ru/books/721725/cover.jpg/242-0", "51": "https://imo10.labirint.ru/books/613026/cover.jpg/484-0", "52": "https://media.elefant.ro/mnresize/1000/-/is/product-images/carte-straina/eksmo/20221228/cf56aaa5/6f55/51de/bc5d/1cba693b82e6/cf56aaa5-6f55-51de-bc5d-1cba693b82e6_1.jpg", "53": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR7t9NXPm-Fmh6a3EPWj2WrZWFZHX5Xnr1TLQ&s", "54": "https://imo10.labirint.ru/books/989266/cover.jpg/242-0", "55": "https://m.media-amazon.com/images/I/71AK6rw9IoL._UF350,350_QL50_.jpg", "56": "https://simg.marwin.kz/media/catalog/product/cache/41deb699a7fea062a8915debbbb0442c/c/o/bredberi_r_451_po_farengeytu_8.jpg", "57": "https://cdn.eksmo.ru/v2/ITD000000001058122/COVER/cover1__w600.jpg", "58": "https://bukinistka.store/environment/cache/images/productGfx_11672_750_750/7606315122.webp", "59": "https://carturesti.md/img-prod/92407-0.jpeg", "60": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQZCZ_2Q3jm7Vmy6oxaIWq-jubvYSjdF58b8g&s", "61": "https://imo10.labirint.ru/books/921411/cover.jpg/242-0", "62": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgKstUcLemyFLchaQsGER7XOgcZeG2SYD6nQ&s", "63": "https://belkniga.by/upload/iblock/7e9/magistral-gordost-i-predubezhdenie.jpg", "64": "https://content.img-gorod.ru/pim/products/images/48/a3/0193a94d-5a9c-7a93-a5b2-418b5f3448a3.jpg", "65": "https://m.media-amazon.com/images/I/61rAWmjuetL._UF1000,1000_QL80_.jpg", "66": "https://imo10.labirint.ru/books/430414/cover.jpg/242-0", "67": "https://s1.livelib.ru/boocover/1017733561/200x305/95ae/boocover.jpg", "68": "https://cdn.librarius.md/img/original/tanatonavty-(tanatonavty-1)_1704465735.jpg", "69": "https://imo10.labirint.ru/books/594964/cover.jpg/484-0", "70": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQHee_boBaFVB1K-BT6QHEfgrieH4hh1qwZnw&s", "71": "https://imo10.labirint.ru/books/671153/cover.jpg/242-0", "72": "https://covers.openlibrary.org/b/id/477808-M.jpg", "73": "https://content.img-gorod.ru/pim/products/images/c4/bd/0193ad30-6d5d-7a0d-b177-d4b6de7ec4bd.jpg", "74": "https://imo10.labirint.ru/books/655634/cover.jpg/242-0", "75": "https://imo10.labirint.ru/books/849676/cover.jpg/242-0", "76": "https://www.mann-ivanov-ferber.ru/assets/images/covers/58/33858/1.50x-thumb.png", "77": "https://imo10.labirint.ru/books/810401/cover.jpg/242-0", "78": "https://www.directmedia.ru/catalog/media/directmediashop/481526-stranitsyi-moey-jizni-romanovyi-semeynyiy-albom.webp", "79": "https://biblion.md/wp-content/uploads/2020/12/блокадная-книга-Азбука.jpg", "80": "https://imo10.labirint.ru/books/914086/cover.jpg/242-0", "81": "https://covers.openlibrary.org/b/id/9171896-M.jpg", "82": "https://imo10.labirint.ru/books/452568/cover.jpg/242-0", "83": "https://content.img-gorod.ru/pim/products/images/62/a9/018ee884-219a-7989-b75e-bf101ba962a9.jpg?width=2648&height=1572", "84": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQAYSbEOSjodKyxDP0NxLfNgr56hz4y88FuBg&s", "85": "https://imo10.labirint.ru/books/684388/cover.jpg/242-0", "86": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQmhVihW-_CutW_LwCPV2DSbCAh_KaitIOuiA&s", "87": "https://imo10.labirint.ru/books/675079/cover.jpg/484-0", "88": "https://librarius.md/img/400/600/aHR0cHM6Ly9jZG4ubGlicmFyaXVzLm1kL2ltZy9jYXRhbG9nL2NoZWxvdmVrLWtvdG9yeXktc21lZXRzeWFfMTY3MjkwNTg4Ny5qcGc_e_.jpg", "89": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQcv6vtX7-6LZ0jutnWfnhm0U7d3TZ9cgPC_A&s", "90": "https://rech-deti.ru/upload/iblock/ebe/ebe8bed882dab200251a35ce07df785f.jpg", "91": "https://imo10.labirint.ru/books/874938/cover.jpg/242-0", "92": "https://imo10.labirint.ru/books/679394/cover.jpg/242-0", "93": "https://covers.openlibrary.org/b/id/10201431-M.jpg", "94": "https://imo10.labirint.ru/books/613023/cover.jpg/484-0", "95": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSgm0yIO-m58kxqsCGYIyVD0pSgyxnyxM2M0A&s", "96": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMYBbBgbahUxxnU9M2ENhhlicomiG96OY6sA&s", "97": "https://cdn.librarius.md/img/original/vishnevyy-sad-(novaya-oblozhka)_1656475558.jpg", "98": "https://imo10.labirint.ru/books/920477/cover.jpg/242-0", "99": "https://imo10.labirint.ru/books/364570/cover.jpg/242-0", "100": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRlHYuf3ulWQj4j4eM4YKYWPbUmJPkMiVmKlg&s", "101": "https://www.umniza.de/WebRoot/Store22/Shops/62303963/6558/B64A/A5D7/8F4F/F28B/0A0C/6D11/8AAB/978-5-04-093342-6.jpg", "102": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRn069BkMk_DGbhJFe4AamlrOy47cmYiZS6aQ&s", "103": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSHvGeyB4gsY7Hetp_NlUyMrt2Le5vynQemHw&s", "104": "https://upload.wikimedia.org/wikipedia/ru/8/8e/Будет_кровь_(Стивен_Кинг).webp", "105": "https://s1.livelib.ru/boocover/1008353734/200x305/a520/Oblomov.jpg", "106": "https://imo10.labirint.ru/books/815747/cover.jpg/242-0", "107": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBI1mJyXBgwRLwXFU5gfGs1s3TlZUDtwy5zQ&s", "108": "https://s1.livelib.ru/boocover/1000463696/200x305/c001/Nikolaj_Tsiskaridze_Poljota_volnoe_uporstvo....jpg", "109": "https://imo10.labirint.ru/books/980135/cover.jpg/242-0", "110": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ_dmByTXYd9R9p2Vk9ApbhOtfsnF2Q2V0dRw&s", "111": "https://imo10.labirint.ru/books/422467/cover.jpg/242-0", "112": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1SoFMHQ8gDO7N1Pv0ehQTPH7z6dVJ6r9VHA&s", "113": "https://ir.ozone.ru/s3/multimedia-1-o/c400/9315346632.jpg", "114": "https://cdn.librarius.md/img/original/skorbi-satany_1741283149.jpg", "115": "https://imo10.labirint.ru/books/893187/cover.jpg/242-0", "116": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQc3BHQgth8373g_3bfySmUMB24-kD2lmY0gA&s", "117": "https://bukvica.org/w/images/6/6a/W0010767_10.jpeg", "118": "https://covers.openlibrary.org/b/id/10512439-M.jpg", "119": "https://murawei.de/media/catalog/product/cache/38c2dad38a0b974cfff331a7b3652e71/r/0/r043024_1.jpg", "121": "https://imo10.labirint.ru/books/1020154/cover.jpg/484-0", "122": "https://static.insales-cdn.com/r/rmE5s-DDoy0/rs:fit:570:570:1/q:80/plain/images/products/1/690/996459186/uk27378.jpg@jpg", "123": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1wLv7BeXFrtjnR7rJCvRM3ukCQAOkI_HL5A&s", "124": "https://imo10.labirint.ru/books/985466/cover.jpg/242-0", "125": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRZ8CUlFmc9qttGVydGljvrV8-iii3-BZBXeA&s", "126": "https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1707164407i/181880418.jpg", "900001": "https://covers.openlibrary.org/b/id/2607166-L.jpg", "900007": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSHSC_dwRl2a9FrHiexozeZHFYz4eivN1tiSA&s", "900016": "https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1713975028i/212091400.jpg", "900017": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQipy6k28I-cfgmzyHvpSSf27zn88PHY17I-A&s", "1778954101049": "https://imo10.labirint.ru/books/406257/cover.jpg/484-0", "1778954770290": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTdADF9N-cYpUEbLXsBa7zwa1ToCAwC5cLFxw&s", "1778955041472": "https://content.img-gorod.ru/pim/products/images/38/f7/01951ccd-0750-70fd-86c8-291ad7dc38f7.jpg", "1778955219480": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQtGk0mw2N_4FWXH0COivtWlalujdVs7B6bSg&s"};
+
 function load(){
   for(const k of KEYS){try{const r=localStorage.getItem(k);if(r){books=JSON.parse(r);break;}}catch(e){}}
   if(!books.length) books=DATA.map(b=>({...b,genre:GENRES[b.id]||''}));
@@ -588,14 +632,18 @@ function load(){
   const covKeys=['lib_covers','lib_covers_v2','lib_covers_backup'];
   for(const ck of covKeys){try{const r=localStorage.getItem(ck);if(r){Object.assign(coverCache,JSON.parse(r));}}catch(e){}}
   if(Object.keys(coverCache).length>0){try{localStorage.setItem('lib_covers_backup',JSON.stringify(coverCache));}catch(e){}}
+  // Merge built-in covers for any device — don't override user choices
+  Object.keys(BUILTIN_COVERS).forEach(id=>{if(!coverCache[id])coverCache[id]=BUILTIN_COVERS[id];});
   thLoad();
   initPhysLib();
   render(); buildGenreChips();
   // After local render, try to pull from GitHub
-  if(ghReady()){
+  // Try to pull from GitHub — works even without token if repo is public and user+repo are set
+  const g=ghCfg();
+  if(g.user&&g.repo){
     ghPull().then(ok=>{if(ok){initPhysLib();render();buildGenreChips();}});
   } else {
-    ghStatus('☁️ GitHub не настроен');
+    ghStatus('☁️ Настрой GitHub для синхронизации');
   }
 }
 
@@ -1036,14 +1084,17 @@ async function loadAllCovers(){
       const r=await fetch('https://openlibrary.org/search.json?q='+encodeURIComponent(q)+'&limit=3&fields=cover_i');
       const data=await r.json();
       const docs=(data.docs||[]).filter(d=>d.cover_i);
-      if(docs.length){coverCache[b.id]='https://covers.openlibrary.org/b/id/'+docs[0].cover_i+'-M.jpg';found++;}
+      if(docs.length){const covUrl='https://covers.openlibrary.org/b/id/'+docs[0].cover_i+'-M.jpg';
+        coverCache[b.id]=covUrl;
+        const bk=books.find(x=>x.id===b.id);if(bk)bk.coverUrl=covUrl;
+        found++;}
       else coverCache[b.id]=null;
     }catch(e){coverCache[b.id]=null;}
     done++;
     st.textContent=done+'/'+toLoad.length+' (найдено '+found+')';
     await new Promise(r=>setTimeout(r,120));
   }
-  saveCovers(); st.textContent='✓ Загружено '+found+' обложек';
+  save(); saveCovers(); st.textContent='✓ Загружено '+found+' обложек (синхронизируются на все устройства)';
   loadingCovers=false; render();
 }
 
@@ -1446,8 +1497,16 @@ function resetTheme() {
   thSave(); applyTheme(); buildThemePanel();
 }
 
+// ── SERVICE PANEL ────────────────────────────────────────────────────────────
+function toggleServicePanel() {
+  const p = document.getElementById('svcPanel');
+  const b = document.getElementById('svc-btn');
+  p.classList.toggle('open');
+  b.classList.toggle('on', p.classList.contains('open'));
+}
+
 // ── KEYBOARD ──────────────────────────────────────────────────────────────────
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCP();closeGH();closeTH();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCP();closeGH();closeTH();const sp=document.getElementById('svcPanel');if(sp)sp.classList.remove('open');const sb=document.getElementById('svc-btn');if(sb)sb.classList.remove('on');}});
 
 load();
 
