@@ -580,6 +580,10 @@ async function ghPush(){
   if(!ghReady())return;
   ghStatus('⏳ Сохраняю...');
   try{
+    // Before pushing, embed all current coverCache URLs into books.coverUrl
+    // so they're available without covers.json on new devices
+    books=books.map(b=>({...b, coverUrl: coverCache[b.id]||b.coverUrl||null}));
+    try{localStorage.setItem('lib_v6',JSON.stringify(books));}catch(e){}
     ghBooksSha=await ghPut(GH_FILES.books,books,ghBooksSha);
     ghCoversSha=await ghPut(GH_FILES.covers,coverCache,ghCoversSha);
     ghStatus('☁️ Сохранено '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),true);
@@ -605,9 +609,21 @@ async function ghPull(){
     const bRes=await ghGet(GH_FILES.books);
     const cRes=await ghGet(GH_FILES.covers);
     if(bRes){books=bRes.content;ghBooksSha=bRes.sha;}
-    if(cRes){coverCache=cRes.content;ghCoversSha=cRes.sha;}
     // migrate genres
     books=books.map(b=>({...b,genre:b.genre||GENRES[b.id]||''}));
+
+    // Build coverCache: start with built-in, then github covers.json, then coverUrl from books
+    // Later sources override earlier ones — so user choices (coverUrl in books) win
+    const merged={};
+    // 1. Built-in covers (lowest priority)
+    Object.assign(merged, BUILTIN_COVERS);
+    // 2. covers.json from GitHub
+    if(cRes){ghCoversSha=cRes.sha; Object.assign(merged, cRes.content);}
+    // 3. coverUrl embedded in each book (highest priority — these are explicit user choices)
+    books.forEach(b=>{if(b.coverUrl)merged[b.id]=b.coverUrl;});
+    coverCache=merged;
+
+    // Save to localStorage
     try{localStorage.setItem('lib_v6',JSON.stringify(books));}catch(e){}
     const covData=JSON.stringify(coverCache);
     ['lib_covers','lib_covers_backup'].forEach(k=>{try{localStorage.setItem(k,covData);}catch(e){}});
@@ -632,8 +648,12 @@ function load(){
   const covKeys=['lib_covers','lib_covers_v2','lib_covers_backup'];
   for(const ck of covKeys){try{const r=localStorage.getItem(ck);if(r){Object.assign(coverCache,JSON.parse(r));}}catch(e){}}
   if(Object.keys(coverCache).length>0){try{localStorage.setItem('lib_covers_backup',JSON.stringify(coverCache));}catch(e){}}
-  // Merge built-in covers for any device — don't override user choices
-  Object.keys(BUILTIN_COVERS).forEach(id=>{if(!coverCache[id])coverCache[id]=BUILTIN_COVERS[id];});
+  // Merge covers: built-in first, then localStorage, then books.coverUrl (highest priority)
+  const localMerged={};
+  Object.assign(localMerged, BUILTIN_COVERS); // lowest priority
+  Object.assign(localMerged, coverCache);     // localStorage overrides built-in
+  books.forEach(b=>{if(b.coverUrl)localMerged[b.id]=b.coverUrl;}); // book's own coverUrl wins
+  coverCache=localMerged;
   thLoad();
   initPhysLib();
   render(); buildGenreChips();
