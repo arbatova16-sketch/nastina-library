@@ -252,7 +252,8 @@ textarea{height:60px;resize:vertical}
     <div class="svc-group">
       <span class="svc-label">Обложки</span>
       <button class="btn btn-sec btn-sm" onclick="loadAllCovers()">🖼 Загрузить все</button>
-      <button class="btn btn-sec btn-sm" onclick="exportCovers()">💾 Сохранить</button>
+      <button class="btn btn-pri btn-sm" onclick="uploadAllCoversToGH()">☁️ Сохранить в GitHub</button>
+      <button class="btn btn-sec btn-sm" onclick="exportCovers()">💾 Локальный бэкап</button>
       <input type="file" id="imp-file" accept=".json" style="display:none" onchange="importCovers(this)">
       <button class="btn btn-sec btn-sm" onclick="document.getElementById('imp-file').click()">📂 Импорт</button>
     </div>
@@ -580,6 +581,10 @@ async function ghPush(){
   if(!ghReady())return;
   ghStatus('⏳ Сохраняю...');
   try{
+    // Before pushing, embed all current coverCache URLs into books.coverUrl
+    // so they're available without covers.json on new devices
+    books=books.map(b=>({...b, coverUrl: coverCache[b.id]||b.coverUrl||null}));
+    try{localStorage.setItem('lib_v6',JSON.stringify(books));}catch(e){}
     ghBooksSha=await ghPut(GH_FILES.books,books,ghBooksSha);
     ghCoversSha=await ghPut(GH_FILES.covers,coverCache,ghCoversSha);
     ghStatus('☁️ Сохранено '+new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),true);
@@ -605,9 +610,21 @@ async function ghPull(){
     const bRes=await ghGet(GH_FILES.books);
     const cRes=await ghGet(GH_FILES.covers);
     if(bRes){books=bRes.content;ghBooksSha=bRes.sha;}
-    if(cRes){coverCache=cRes.content;ghCoversSha=cRes.sha;}
     // migrate genres
     books=books.map(b=>({...b,genre:b.genre||GENRES[b.id]||''}));
+
+    // Build coverCache: start with built-in, then github covers.json, then coverUrl from books
+    // Later sources override earlier ones — so user choices (coverUrl in books) win
+    const merged={};
+    // 1. Built-in covers (lowest priority)
+    Object.assign(merged, BUILTIN_COVERS);
+    // 2. covers.json from GitHub
+    if(cRes){ghCoversSha=cRes.sha; Object.assign(merged, cRes.content);}
+    // 3. coverUrl embedded in each book (highest priority — these are explicit user choices)
+    books.forEach(b=>{if(b.coverUrl)merged[b.id]=b.coverUrl;});
+    coverCache=merged;
+
+    // Save to localStorage
     try{localStorage.setItem('lib_v6',JSON.stringify(books));}catch(e){}
     const covData=JSON.stringify(coverCache);
     ['lib_covers','lib_covers_backup'].forEach(k=>{try{localStorage.setItem(k,covData);}catch(e){}});
@@ -632,8 +649,12 @@ function load(){
   const covKeys=['lib_covers','lib_covers_v2','lib_covers_backup'];
   for(const ck of covKeys){try{const r=localStorage.getItem(ck);if(r){Object.assign(coverCache,JSON.parse(r));}}catch(e){}}
   if(Object.keys(coverCache).length>0){try{localStorage.setItem('lib_covers_backup',JSON.stringify(coverCache));}catch(e){}}
-  // Merge built-in covers for any device — don't override user choices
-  Object.keys(BUILTIN_COVERS).forEach(id=>{if(!coverCache[id])coverCache[id]=BUILTIN_COVERS[id];});
+  // Merge covers: built-in first, then localStorage, then books.coverUrl (highest priority)
+  const localMerged={};
+  Object.assign(localMerged, BUILTIN_COVERS); // lowest priority
+  Object.assign(localMerged, coverCache);     // localStorage overrides built-in
+  books.forEach(b=>{if(b.coverUrl)localMerged[b.id]=b.coverUrl;}); // book's own coverUrl wins
+  coverCache=localMerged;
   thLoad();
   initPhysLib();
   render(); buildGenreChips();
@@ -734,7 +755,7 @@ function openAddForm(){
 
 function openEditForm(id){
   const b=books.find(x=>x.id===id); if(!b)return;
-  editId=id; cpSelectedUrl=null;
+  editId=id; cpSelectedUrl=null; cpFormMode=true;
   closeModal();
   document.getElementById('fwtit').textContent='Редактировать книгу';
   fillForm(b);
@@ -744,7 +765,7 @@ function openEditForm(id){
 
 function closeForm(){
   document.getElementById('fw').classList.remove('open');
-  editId=null; cpSelectedUrl=null;
+  editId=null; cpSelectedUrl=null; cpFormMode=false;
 }
 
 function saveBook(){
@@ -765,6 +786,11 @@ function saveBook(){
     const idx=books.findIndex(b=>b.id===editId);
     if(idx>=0){
       books[idx]={...books[idx],title,author,genre:document.getElementById('f-genre').value.trim(),pubYear:document.getElementById('f-pubyear').value.trim(),status,rating:parseInt(document.getElementById('f-rating').value),dateStart:ds,dateEnd:isReading?'':de,pages,ePages,daysRead:days,pagesPerDay:ppd,readYear:ry,note:document.getElementById('f-note').value.trim()};
+      // Apply cover selected in form
+      if(cpSelectedUrl){
+        coverCache[editId]=cpSelectedUrl;
+        books[idx].coverUrl=cpSelectedUrl;
+      }
     }
   } else {
     const nb={id:Date.now(),title,author,genre:document.getElementById('f-genre').value.trim(),pubYear:document.getElementById('f-pubyear').value.trim(),status,rating:parseInt(document.getElementById('f-rating').value),dateStart:ds,dateEnd:isReading?'':de,pages,ePages,daysRead:days,pagesPerDay:ppd,readYear:ry,note:document.getElementById('f-note').value.trim(),cover:CV[Math.floor(Math.random()*CV.length)]};
@@ -828,7 +854,7 @@ function render(){
   let f=books.filter(b=>{
     if(q&&!b.title.toLowerCase().includes(q)&&!b.author.toLowerCase().includes(q)&&!(b.genre||'').toLowerCase().includes(q))return false;
     if(activeGenre&&b.genre!==activeGenre)return false;
-    if((yf||yt<9999)&&(parseInt(b.readYear)||0)<yf||(parseInt(b.readYear)||9999)>yt)return false;
+    if((yf||yt<9999)&&((parseInt(b.readYear)||0)<yf||(parseInt(b.readYear)||9999)>yt))return false;
     return true;
   });
   updateAFTags();
@@ -1063,7 +1089,23 @@ function cpApply(){
     document.getElementById('f-cov-btn').textContent='🖼 Обложка выбрана ✓';
     closeCP(); return;
   }
-  if(cpBookId){coverCache[cpBookId]=cpSelectedUrl;saveCovers();render();}
+  if(cpBookId){
+    coverCache[cpBookId]=cpSelectedUrl;
+    const cb=books.find(x=>x.id===cpBookId);
+    if(cb)cb.coverUrl=cpSelectedUrl;
+    // Upload to GitHub in background so it's permanent everywhere
+    if(ghReady()&&cpSelectedUrl&&!cpSelectedUrl.startsWith('data:')){
+      uploadCoverToGH(cpBookId,cpSelectedUrl).then(newUrl=>{
+        if(newUrl!==cpSelectedUrl){
+          coverCache[cpBookId]=newUrl;
+          if(cb)cb.coverUrl=newUrl;
+        }
+        save();saveCovers();render();
+      });
+    } else {
+      save();saveCovers();render();
+    }
+  }
   closeCP();
 }
 function cpReset(){
@@ -1503,6 +1545,113 @@ function toggleServicePanel() {
   const b = document.getElementById('svc-btn');
   p.classList.toggle('open');
   b.classList.toggle('on', p.classList.contains('open'));
+}
+
+// ── COVER UPLOAD TO GITHUB ────────────────────────────────────────────────────
+// Convert any image URL to base64 via canvas (bypasses hotlink in browser context)
+async function urlToBase64(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      try {
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        resolve(dataUrl.split(',')[1]); // return base64 only
+      } catch(e) { reject(e); }
+    };
+    img.onerror = () => {
+      // Fallback: fetch as blob
+      fetch(url)
+        .then(r => r.blob())
+        .then(blob => {
+          const reader = new FileReader();
+          reader.onload = e => resolve(e.target.result.split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        })
+        .catch(reject);
+    };
+    img.src = url;
+  });
+}
+
+// Upload one cover image to GitHub covers/ folder, return new raw URL
+async function uploadCoverToGH(bookId, imageUrl) {
+  if (!ghReady()) return imageUrl; // no token — return original
+  if (!imageUrl || imageUrl.startsWith('data:')) return imageUrl; // skip base64
+
+  // If already in our repo, no need to re-upload
+  const g = ghCfg();
+  const rawBase = 'https://raw.githubusercontent.com/' + g.user + '/' + g.repo + '/main/covers/';
+  if (imageUrl.startsWith(rawBase)) return imageUrl;
+
+  try {
+    const base64 = await urlToBase64(imageUrl);
+    const ext = imageUrl.includes('.png') ? 'png' : imageUrl.includes('.webp') ? 'webp' : 'jpg';
+    const path = 'covers/' + bookId + '.' + ext;
+    const apiUrl = 'https://api.github.com/repos/' + g.user + '/' + g.repo + '/contents/' + path;
+
+    // Check if file exists (to get sha for update)
+    let sha = null;
+    try {
+      const check = await fetch(apiUrl, { headers: { 'Authorization': 'token ' + g.token, 'Accept': 'application/vnd.github.v3+json' }});
+      if (check.ok) { const d = await check.json(); sha = d.sha; }
+    } catch(e) {}
+
+    const body = { message: 'cover: book ' + bookId, content: base64 };
+    if (sha) body.sha = sha;
+    const r = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { 'Authorization': 'token ' + g.token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (r.ok) {
+      return rawBase + bookId + '.' + ext;
+    }
+  } catch(e) {
+    console.warn('Cover upload failed for', bookId, e);
+  }
+  return imageUrl; // fallback to original
+}
+
+// Bulk upload all covers to GitHub
+async function uploadAllCoversToGH() {
+  if (!ghReady()) { alert('Сначала настрой GitHub (токен нужен для записи)'); return; }
+  const btn = document.querySelector('[onclick="uploadAllCoversToGH()"]');
+  const st = document.getElementById('covSt');
+  if (btn) btn.disabled = true;
+
+  const entries = Object.entries(coverCache);
+  let done = 0, uploaded = 0;
+  for (const [id, url] of entries) {
+    if (!url || url.startsWith('data:')) { done++; continue; }
+    const g = ghCfg();
+    const rawBase = 'https://raw.githubusercontent.com/' + g.user + '/' + g.repo + '/main/covers/';
+    if (url.startsWith(rawBase)) { done++; continue; } // already uploaded
+    st.textContent = 'Загружаю ' + done + '/' + entries.length + '...';
+    const newUrl = await uploadCoverToGH(id, url);
+    if (newUrl !== url) {
+      coverCache[id] = newUrl;
+      // Update coverUrl in book too
+      const b = books.find(x => String(x.id) === String(id));
+      if (b) b.coverUrl = newUrl;
+      uploaded++;
+    }
+    done++;
+    await new Promise(r => setTimeout(r, 200)); // be nice to GitHub API
+  }
+
+  save(); saveCovers();
+  // Push updated books and covers to GitHub
+  await ghPush();
+  st.textContent = '✓ Загружено ' + uploaded + ' обложек в GitHub';
+  if (btn) btn.disabled = false;
+  render();
 }
 
 // ── KEYBOARD ──────────────────────────────────────────────────────────────────
